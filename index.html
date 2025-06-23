@@ -2,39 +2,51 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RAVERSUS | Iris Analysis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RAVERSUS | AI Iris Analysis</title>
     <style>
         :root {
             --primary: #6e45e2;
+            --primary-light: #9d8bff;
             --secondary: #88d3ce;
             --dark: #1a1a2e;
+            --darker: #12121e;
             --light: #f9f9f9;
+            --lighter: #ffffff;
             --danger: #ff4d4d;
+            --warning: #ffb74d;
             --success: #4CAF50;
+            --text-primary: rgba(255,255,255,0.95);
+            --text-secondary: rgba(255,255,255,0.7);
+            --text-tertiary: rgba(255,255,255,0.5);
+            --card-bg: rgba(255,255,255,0.08);
+            --card-border: rgba(255,255,255,0.1);
         }
         
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
         
         body {
             background-color: var(--dark);
-            color: var(--light);
+            color: var(--text-primary);
             min-height: 100vh;
             overflow-x: hidden;
+            line-height: 1.5;
         }
         
         .app-container {
-            max-width: 500px;
+            max-width: 100%;
             margin: 0 auto;
             position: relative;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
         
         header {
@@ -42,25 +54,37 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: linear-gradient(135deg, var(--primary), var(--darker));
             color: white;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
         
         .logo {
             font-weight: 700;
-            font-size: 1.5rem;
+            font-size: clamp(1.2rem, 4vw, 1.5rem);
             letter-spacing: 1px;
+            background: linear-gradient(to right, var(--lighter), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
         
         .user-avatar {
-            width: 36px;
-            height: 36px;
+            width: clamp(36px, 8vw, 42px);
+            height: clamp(36px, 8vw, 42px);
             border-radius: 50%;
-            background-color: rgba(255,255,255,0.3);
+            background-color: rgba(255,255,255,0.15);
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .user-avatar:active {
+            transform: scale(0.95);
         }
         
         .scan-container {
@@ -72,9 +96,12 @@
         
         .camera-preview {
             flex: 1;
-            background-color: #333;
+            background-color: #000;
             position: relative;
             overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         #camera-feed {
@@ -90,17 +117,23 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
         
         .target-circle {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 200px;
-            height: 200px;
+            width: min(65vw, 300px);
+            height: min(65vw, 300px);
             border: 3px solid rgba(255,255,255,0.7);
             border-radius: 50%;
+            position: relative;
+            transition: border-color 0.3s;
+        }
+        
+        .target-circle.good-position {
+            border-color: var(--success);
         }
         
         .target-center {
@@ -108,52 +141,65 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 20px;
-            height: 20px;
-            background-color: rgba(255,255,255,0.5);
+            width: 12px;
+            height: 12px;
+            background-color: rgba(255,255,255,0.7);
             border-radius: 50%;
         }
         
         .distance-indicator {
             position: absolute;
-            top: 20px;
+            top: clamp(20px, 5vw, 30px);
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(0,0,0,0.7);
             color: white;
-            padding: 8px 16px;
+            padding: clamp(6px, 2vw, 8px) clamp(12px, 4vw, 16px);
             border-radius: 20px;
-            font-size: 0.9rem;
+            font-size: clamp(0.8rem, 3vw, 0.9rem);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .distance-indicator i {
+            font-size: 0.9em;
         }
         
         .distance-indicator.good {
-            background-color: var(--success);
+            background-color: rgba(76, 175, 80, 0.8);
         }
         
         .distance-indicator.bad {
-            background-color: var(--danger);
+            background-color: rgba(244, 67, 54, 0.8);
         }
         
         .capture-controls {
-            padding: 1.5rem;
+            padding: clamp(1rem, 4vw, 1.5rem);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 1rem;
-            background-color: rgba(26, 26, 46, 0.9);
+            gap: clamp(0.8rem, 3vw, 1rem);
+            background-color: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-top: 1px solid rgba(255,255,255,0.1);
         }
         
         .capture-btn {
-            width: 70px;
-            height: 70px;
+            width: clamp(60px, 18vw, 70px);
+            height: clamp(60px, 18vw, 70px);
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border: 4px solid white;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border: clamp(3px, 1vw, 4px) solid white;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: transform 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 15px rgba(110, 69, 226, 0.4);
         }
         
         .capture-btn:active {
@@ -161,127 +207,190 @@
         }
         
         .capture-btn-inner {
-            width: 50px;
-            height: 50px;
+            width: 70%;
+            height: 70%;
             border-radius: 50%;
             background-color: white;
+            transition: transform 0.2s;
+        }
+        
+        .capture-btn:active .capture-btn-inner {
+            transform: scale(0.9);
         }
         
         .instructions {
             text-align: center;
-            font-size: 0.9rem;
-            color: rgba(255,255,255,0.8);
+            font-size: clamp(0.8rem, 3.5vw, 0.95rem);
+            color: var(--text-secondary);
+            line-height: 1.6;
+            padding: 0 clamp(0.5rem, 5vw, 2rem);
         }
         
         .progress-steps {
             display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
+            gap: clamp(0.3rem, 2vw, 0.5rem);
+            margin-bottom: clamp(0.3rem, 2vw, 0.5rem);
+            width: 100%;
+            justify-content: center;
         }
         
         .step {
-            width: 30px;
-            height: 6px;
-            background-color: rgba(255,255,255,0.2);
+            flex: 1;
+            max-width: 80px;
+            height: clamp(4px, 1.5vw, 6px);
+            background-color: rgba(255,255,255,0.15);
             border-radius: 3px;
-            transition: background-color 0.3s;
+            transition: all 0.3s ease;
         }
         
         .step.active {
             background-color: var(--primary);
+            box-shadow: 0 0 8px rgba(110, 69, 226, 0.6);
         }
         
         .step.completed {
             background-color: var(--success);
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
         }
         
         /* Analysis Report Screen */
         .report-container {
             display: none;
             flex: 1;
-            padding: 1rem;
+            padding: clamp(0.8rem, 3vw, 1rem);
             overflow-y: auto;
+            background-color: var(--darker);
         }
         
         .report-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: clamp(1rem, 3vw, 1.5rem);
         }
         
         .report-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--primary);
+            font-size: clamp(1.3rem, 5vw, 1.8rem);
+            font-weight: 700;
+            background: linear-gradient(to right, var(--lighter), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
         
         .report-date {
-            color: rgba(255,255,255,0.6);
-            font-size: 0.9rem;
+            color: var(--text-tertiary);
+            font-size: clamp(0.75rem, 3vw, 0.85rem);
         }
         
         .report-section {
-            background-color: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 1rem;
-            margin-bottom: 1rem;
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: clamp(10px, 3vw, 14px);
+            padding: clamp(0.8rem, 3vw, 1.2rem);
+            margin-bottom: clamp(0.8rem, 3vw, 1.2rem);
+            transition: transform 0.2s;
+        }
+        
+        .report-section:active {
+            transform: scale(0.99);
         }
         
         .section-title {
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
+            font-size: clamp(1rem, 4vw, 1.2rem);
+            margin-bottom: clamp(0.5rem, 2vw, 0.8rem);
             color: var(--secondary);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .section-title i {
+            font-size: 0.9em;
+        }
+        
+        .iris-images {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(0.5rem, 3vw, 1rem);
+            margin: clamp(0.5rem, 2vw, 1rem) 0;
+        }
+        
+        .iris-image-container {
+            position: relative;
+            border-radius: clamp(6px, 2vw, 10px);
+            overflow: hidden;
+            aspect-ratio: 1;
+        }
+        
+        .iris-image-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+            color: white;
+            padding: 0.5rem;
+            font-size: clamp(0.7rem, 3vw, 0.8rem);
+            text-align: center;
         }
         
         .iris-image {
             width: 100%;
-            border-radius: 8px;
-            margin: 0.5rem 0;
+            height: 100%;
+            object-fit: cover;
         }
         
         .heatmap {
             position: relative;
-            margin: 1rem 0;
+            margin: clamp(0.8rem, 3vw, 1.2rem) 0;
+            border-radius: clamp(6px, 2vw, 10px);
+            overflow: hidden;
         }
         
         .heatmap-image {
             width: 100%;
-            border-radius: 8px;
+            display: block;
         }
         
         .heatmap-legend {
             display: flex;
             justify-content: space-between;
             margin-top: 0.5rem;
-            font-size: 0.8rem;
+            font-size: clamp(0.7rem, 3vw, 0.8rem);
+            color: var(--text-secondary);
         }
         
         .finding-item {
             display: flex;
-            margin-bottom: 0.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: clamp(0.5rem, 2vw, 0.8rem);
+            padding-bottom: clamp(0.5rem, 2vw, 0.8rem);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
         }
         
         .finding-severity {
-            width: 12px;
-            height: 12px;
+            flex-shrink: 0;
+            width: clamp(10px, 3vw, 14px);
+            height: clamp(10px, 3vw, 14px);
             border-radius: 50%;
-            margin-right: 0.5rem;
+            margin-right: clamp(0.5rem, 2vw, 0.8rem);
             margin-top: 0.2rem;
         }
         
         .finding-severity.low {
-            background-color: #4CAF50;
+            background-color: var(--success);
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
         }
         
         .finding-severity.medium {
-            background-color: #FFC107;
+            background-color: var(--warning);
+            box-shadow: 0 0 8px rgba(255, 183, 77, 0.4);
         }
         
         .finding-severity.high {
-            background-color: #F44336;
+            background-color: var(--danger);
+            box-shadow: 0 0 8px rgba(244, 67, 54, 0.4);
         }
         
         .finding-content {
@@ -289,64 +398,86 @@
         }
         
         .finding-title {
-            font-weight: 500;
-            margin-bottom: 0.2rem;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+            color: var(--text-primary);
         }
         
         .finding-desc {
-            font-size: 0.9rem;
-            color: rgba(255,255,255,0.7);
-            margin-bottom: 0.3rem;
+            font-size: clamp(0.8rem, 3vw, 0.9rem);
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
         }
         
         .finding-source {
-            font-size: 0.7rem;
+            font-size: clamp(0.65rem, 2.5vw, 0.75rem);
             color: var(--secondary);
             font-style: italic;
         }
         
         .recommendation-card {
-            background-color: rgba(110, 69, 226, 0.2);
+            background-color: rgba(110, 69, 226, 0.15);
             border-left: 4px solid var(--primary);
-            padding: 0.8rem;
-            border-radius: 0 8px 8px 0;
-            margin-bottom: 0.5rem;
+            padding: clamp(0.7rem, 3vw, 1rem);
+            border-radius: 0 clamp(6px, 2vw, 10px) clamp(6px, 2vw, 10px) 0;
+            margin-bottom: clamp(0.5rem, 2vw, 0.8rem);
+            transition: transform 0.2s;
+        }
+        
+        .recommendation-card:active {
+            transform: scale(0.98);
         }
         
         .recommendation-title {
-            font-weight: 500;
+            font-weight: 600;
             margin-bottom: 0.3rem;
+            font-size: clamp(0.9rem, 3.5vw, 1rem);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .recommendation-title i {
+            color: var(--primary-light);
         }
         
         .recommendation-desc {
-            font-size: 0.9rem;
-            color: rgba(255,255,255,0.8);
+            font-size: clamp(0.8rem, 3vw, 0.9rem);
+            color: var(--text-secondary);
+            line-height: 1.6;
         }
         
         .action-buttons {
             display: flex;
-            gap: 1rem;
-            margin-top: 1.5rem;
+            gap: clamp(0.8rem, 3vw, 1.2rem);
+            margin-top: clamp(1rem, 4vw, 1.8rem);
         }
         
         .btn {
-            padding: 0.8rem 1.2rem;
-            border-radius: 8px;
+            padding: clamp(0.7rem, 3vw, 0.9rem);
+            border-radius: clamp(8px, 3vw, 12px);
             border: none;
-            font-weight: 500;
+            font-weight: 600;
             cursor: pointer;
             flex: 1;
             text-align: center;
-            transition: transform 0.2s, opacity 0.2s;
+            transition: all 0.2s;
+            font-size: clamp(0.85rem, 3.5vw, 1rem);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
         }
         
         .btn:active {
-            transform: scale(0.98);
+            transform: scale(0.97);
         }
         
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
             color: white;
+            box-shadow: 0 4px 15px rgba(110, 69, 226, 0.3);
         }
         
         .btn-outline {
@@ -361,22 +492,22 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: var(--dark);
+            background-color: var(--darker);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 100;
+            z-index: 1000;
+            gap: 1.5rem;
         }
         
         .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255,255,255,0.1);
+            width: clamp(50px, 15vw, 70px);
+            height: clamp(50px, 15vw, 70px);
+            border: clamp(4px, 1.5vw, 6px) solid rgba(255,255,255,0.1);
             border-radius: 50%;
             border-top-color: var(--primary);
             animation: spin 1s ease-in-out infinite;
-            margin-bottom: 1rem;
         }
         
         @keyframes spin {
@@ -384,20 +515,20 @@
         }
         
         .loading-text {
-            margin-top: 1rem;
-            color: rgba(255,255,255,0.8);
+            color: var(--text-secondary);
+            font-size: clamp(0.9rem, 4vw, 1.1rem);
+            text-align: center;
+            max-width: 80%;
+            margin: 0 auto;
         }
         
         .ai-processing {
             display: flex;
             align-items: center;
             margin-top: 0.5rem;
-            font-size: 0.9rem;
+            font-size: clamp(0.8rem, 3vw, 0.9rem);
             color: var(--secondary);
-        }
-        
-        .ai-processing span {
-            margin-left: 0.5rem;
+            gap: 0.5rem;
         }
         
         .pulse {
@@ -412,8 +543,8 @@
         
         /* Animation for scan completion */
         @keyframes scanComplete {
-            0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(1.5); opacity: 0; }
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
         }
         
         .scan-complete {
@@ -421,8 +552,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 100px;
-            height: 100px;
+            width: clamp(80px, 25vw, 120px);
+            height: clamp(80px, 25vw, 120px);
             background-color: rgba(76, 175, 80, 0.7);
             border-radius: 50%;
             display: flex;
@@ -435,10 +566,46 @@
         
         .scan-complete i {
             color: white;
-            font-size: 2rem;
+            font-size: clamp(1.5rem, 8vw, 2.5rem);
+        }
+        
+        /* Responsive adjustments */
+        @media (min-width: 768px) {
+            .app-container {
+                max-width: 500px;
+                margin: 0 auto;
+                box-shadow: 0 0 30px rgba(0,0,0,0.3);
+            }
+            
+            body {
+                background-color: var(--darker);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 1rem;
+            }
+        }
+        
+        /* Accessibility improvements */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        
+        /* Better focus states for keyboard navigation */
+        button:focus-visible, [tabindex="0"]:focus-visible {
+            outline: 2px solid var(--secondary);
+            outline-offset: 2px;
         }
     </style>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="app-container">
@@ -446,14 +613,14 @@
         <div class="loading-screen" id="loadingScreen">
             <div class="spinner"></div>
             <div class="logo">RAVERSUS</div>
-            <div class="loading-text">Initializing iris analysis system</div>
+            <div class="loading-text">Initializing AI iris analysis system</div>
         </div>
         
         <!-- Main App Interface -->
         <div id="appInterface" style="display: none;">
             <header>
                 <div class="logo">RAVERSUS</div>
-                <div class="user-avatar">
+                <div class="user-avatar" tabindex="0" aria-label="User profile">
                     <i class="fas fa-user"></i>
                 </div>
             </header>
@@ -462,22 +629,23 @@
             <div class="scan-container" id="scanView">
                 <div class="camera-preview">
                     <!-- In a real app, this would be the actual camera feed -->
-                    <img id="camera-feed" src="https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?w=500&auto=format" alt="Camera feed">
+                    <img id="camera-feed" src="https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?w=500&auto=format" alt="Camera feed" aria-hidden="true">
                     
                     <div class="ar-overlay">
-                        <div class="target-circle">
+                        <div class="target-circle" id="targetCircle">
                             <div class="target-center"></div>
                         </div>
                         <div class="distance-indicator" id="distanceIndicator">
-                            Move closer
+                            <i class="fas fa-ruler-vertical"></i>
+                            <span>Move closer</span>
                         </div>
                     </div>
                     
                     <div class="progress-steps">
-                        <div class="step completed" id="step1"></div>
-                        <div class="step active" id="step2"></div>
-                        <div class="step" id="step3"></div>
-                        <div class="step" id="step4"></div>
+                        <div class="step completed" id="step1" aria-label="Step 1 completed"></div>
+                        <div class="step active" id="step2" aria-label="Step 2 active"></div>
+                        <div class="step" id="step3" aria-label="Step 3"></div>
+                        <div class="step" id="step4" aria-label="Step 4"></div>
                     </div>
                 </div>
                 
@@ -486,12 +654,12 @@
                         Align your eye within the circle. Hold steady for automatic capture.
                     </div>
                     
-                    <div class="capture-btn" id="captureBtn">
+                    <button class="capture-btn" id="captureBtn" aria-label="Capture iris image">
                         <div class="capture-btn-inner"></div>
-                    </div>
+                    </button>
                     
                     <div class="ai-processing">
-                        <i class="fas fa-brain pulse"></i>
+                        <i class="fas fa-brain pulse" aria-hidden="true"></i>
                         <span>AI Iris Analysis Ready</span>
                     </div>
                 </div>
@@ -500,20 +668,28 @@
             <!-- Analysis Report View -->
             <div class="report-container" id="reportView">
                 <div class="report-header">
-                    <div class="report-title">Iris Analysis Report</div>
+                    <h1 class="report-title">Iris Analysis Report</h1>
                     <div class="report-date">June 23, 2025</div>
                 </div>
                 
                 <div class="report-section">
-                    <div class="section-title">Iris Images</div>
-                    <img src="https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?w=500&auto=format" class="iris-image" alt="Left iris">
-                    <img src="https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?w=500&auto=format" class="iris-image" alt="Right iris">
+                    <h2 class="section-title"><i class="fas fa-eye"></i> Iris Images</h2>
+                    <div class="iris-images">
+                        <div class="iris-image-container">
+                            <img src="https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?w=500&auto=format" class="iris-image" alt="Left iris">
+                            <div class="iris-image-label">Left Iris</div>
+                        </div>
+                        <div class="iris-image-container">
+                            <img src="https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?w=500&auto=format" class="iris-image" alt="Right iris">
+                            <div class="iris-image-label">Right Iris</div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="report-section">
-                    <div class="section-title">Health Heatmap</div>
+                    <h2 class="section-title"><i class="fas fa-map-marked-alt"></i> Health Heatmap</h2>
                     <div class="heatmap">
-                        <img src="https://i.imgur.com/JqYeZvn.png" class="heatmap-image" alt="Iris heatmap">
+                        <img src="https://i.imgur.com/JqYeZvn.png" class="heatmap-image" alt="Iris heatmap showing health zones">
                         <div class="heatmap-legend">
                             <span>Normal</span>
                             <span>Moderate</span>
@@ -523,58 +699,62 @@
                 </div>
                 
                 <div class="report-section">
-                    <div class="section-title">Key Findings</div>
+                    <h2 class="section-title"><i class="fas fa-search-plus"></i> Key Findings</h2>
                     
                     <div class="finding-item">
-                        <div class="finding-severity medium"></div>
+                        <div class="finding-severity medium" aria-label="Medium severity"></div>
                         <div class="finding-content">
-                            <div class="finding-title">Liver Congestion</div>
-                            <div class="finding-desc">Radial furrows in the liver zone suggest reduced detoxification capacity.</div>
-                            <div class="finding-source">Source: Jensen, B. (2010). Iridology Simplified</div>
+                            <h3 class="finding-title">Liver Congestion</h3>
+                            <p class="finding-desc">Radial furrows in the liver zone suggest reduced detoxification capacity.</p>
+                            <p class="finding-source">Source: Jensen, B. (2010). Iridology Simplified</p>
                         </div>
                     </div>
                     
                     <div class="finding-item">
-                        <div class="finding-severity low"></div>
+                        <div class="finding-severity low" aria-label="Low severity"></div>
                         <div class="finding-content">
-                            <div class="finding-title">Adrenal Fatigue</div>
-                            <div class="finding-desc">Subtle discoloration in the adrenal zone indicates mild stress response.</div>
-                            <div class="finding-source">Source: International Journal of Iridology, 2022</div>
+                            <h3 class="finding-title">Adrenal Fatigue</h3>
+                            <p class="finding-desc">Subtle discoloration in the adrenal zone indicates mild stress response.</p>
+                            <p class="finding-source">Source: International Journal of Iridology, 2022</p>
                         </div>
                     </div>
                     
                     <div class="finding-item">
-                        <div class="finding-severity high"></div>
+                        <div class="finding-severity high" aria-label="High severity"></div>
                         <div class="finding-content">
-                            <div class="finding-title">Oxidative Stress</div>
-                            <div class="finding-desc">Concentric rings suggest significant free radical damage.</div>
-                            <div class="finding-source">Source: American Journal of Natural Medicine, 2023</div>
+                            <h3 class="finding-title">Oxidative Stress</h3>
+                            <p class="finding-desc">Concentric rings suggest significant free radical damage.</p>
+                            <p class="finding-source">Source: American Journal of Natural Medicine, 2023</p>
                         </div>
                     </div>
                 </div>
                 
                 <div class="report-section">
-                    <div class="section-title">Recommended Protocols</div>
+                    <h2 class="section-title"><i class="fas fa-prescription-bottle-alt"></i> Recommended Protocols</h2>
                     
-                    <div class="recommendation-card">
-                        <div class="recommendation-title">Liver Support Protocol</div>
-                        <div class="recommendation-desc">Milk thistle (150mg 2x daily), Dandelion root tea, Cruciferous vegetables</div>
+                    <div class="recommendation-card" tabindex="0">
+                        <h3 class="recommendation-title"><i class="fas fa-leaf"></i> Liver Support</h3>
+                        <p class="recommendation-desc">Milk thistle (150mg 2x daily), Dandelion root tea, Cruciferous vegetables</p>
                     </div>
                     
-                    <div class="recommendation-card">
-                        <div class="recommendation-title">Stress Management</div>
-                        <div class="recommendation-desc">Ashwagandha (300mg at bedtime), Meditation 10min/day, Sleep before 11pm</div>
+                    <div class="recommendation-card" tabindex="0">
+                        <h3 class="recommendation-title"><i class="fas fa-spa"></i> Stress Management</h3>
+                        <p class="recommendation-desc">Ashwagandha (300mg at bedtime), Meditation 10min/day, Sleep before 11pm</p>
                     </div>
                     
-                    <div class="recommendation-card">
-                        <div class="recommendation-title">Antioxidant Boost</div>
-                        <div class="recommendation-desc">Vitamin C (1000mg), NAC (600mg), Blueberry extract</div>
+                    <div class="recommendation-card" tabindex="0">
+                        <h3 class="recommendation-title"><i class="fas fa-shield-virus"></i> Antioxidant Boost</h3>
+                        <p class="recommendation-desc">Vitamin C (1000mg), NAC (600mg), Blueberry extract</p>
                     </div>
                 </div>
                 
                 <div class="action-buttons">
-                    <button class="btn btn-outline">Save Report</button>
-                    <button class="btn btn-primary">View Protocol Plan</button>
+                    <button class="btn btn-outline">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                    <button class="btn btn-primary">
+                        <i class="fas fa-clipboard-list"></i> View Plan
+                    </button>
                 </div>
             </div>
         </div>
@@ -594,6 +774,7 @@
             function setupScanView() {
                 const captureBtn = document.getElementById('captureBtn');
                 const distanceIndicator = document.getElementById('distanceIndicator');
+                const targetCircle = document.getElementById('targetCircle');
                 const instructions = document.getElementById('instructions');
                 const steps = [
                     document.getElementById('step1'),
@@ -603,19 +784,31 @@
                 ];
                 
                 let currentStep = 1;
+                let isGoodPosition = false;
                 
                 // Simulate distance detection
-                setInterval(function() {
-                    const distances = ['Too far', 'Move closer', 'Perfect distance', 'Too close'];
-                    const classes = ['bad', 'bad', 'good', 'bad'];
+                const distanceCheckInterval = setInterval(function() {
+                    const distances = [
+                        {text: 'Too far', class: 'bad', good: false},
+                        {text: 'Move closer', class: 'bad', good: false},
+                        {text: 'Perfect distance', class: 'good', good: true},
+                        {text: 'Too close', class: 'bad', good: false}
+                    ];
                     const randomIndex = Math.floor(Math.random() * distances.length);
+                    const distance = distances[randomIndex];
                     
-                    distanceIndicator.textContent = distances[randomIndex];
-                    distanceIndicator.className = 'distance-indicator ' + classes[randomIndex];
+                    distanceIndicator.innerHTML = `<i class="fas fa-ruler-vertical"></i> <span>${distance.text}</span>`;
+                    distanceIndicator.className = 'distance-indicator ' + distance.class;
+                    
+                    // Update target circle based on position
+                    if (distance.good !== isGoodPosition) {
+                        isGoodPosition = distance.good;
+                        targetCircle.classList.toggle('good-position', isGoodPosition);
+                    }
                 }, 1500);
                 
                 // Capture button click handler
-                captureBtn.addEventListener('click', function() {
+                function handleCapture() {
                     // Show scan complete animation
                     const scanComplete = document.createElement('div');
                     scanComplete.className = 'scan-complete';
@@ -639,14 +832,16 @@
                         instructions.textContent = instructionTexts[currentStep - 2];
                         
                         // Simulate automatic capture for demo
-                        setTimeout(function() {
-                            captureBtn.click();
-                        }, 2000);
+                        setTimeout(handleCapture, 2000);
                     } else {
                         // All steps complete - show report
+                        clearInterval(distanceCheckInterval);
                         setTimeout(function() {
                             document.getElementById('scanView').style.display = 'none';
                             document.getElementById('reportView').style.display = 'flex';
+                            
+                            // Scroll to top of report
+                            document.getElementById('reportView').scrollTo(0, 0);
                         }, 1500);
                     }
                     
@@ -654,13 +849,32 @@
                     setTimeout(function() {
                         scanComplete.remove();
                     }, 1000);
-                });
+                }
                 
-                // Simulate initial auto-capture for demo
-                setTimeout(function() {
-                    captureBtn.click();
+                captureBtn.addEventListener('click', handleCapture);
+                
+                // Simulate initial auto-capture for demo after 3 seconds
+                const demoTimeout = setTimeout(function() {
+                    handleCapture();
                 }, 3000);
+                
+                // Cleanup on page hide (for demo purposes)
+                window.addEventListener('visibilitychange', function() {
+                    if (document.hidden) {
+                        clearInterval(distanceCheckInterval);
+                        clearTimeout(demoTimeout);
+                    }
+                });
             }
+            
+            // Handle back button from report view (demo only - in real app would use proper routing)
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && document.getElementById('reportView').style.display === 'flex') {
+                    document.getElementById('reportView').style.display = 'none';
+                    document.getElementById('scanView').style.display = 'flex';
+                    setupScanView();
+                }
+            });
         });
     </script>
 </body>
