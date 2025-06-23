@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAVERSUS | Iris Analysis</title>
+    <style>
+        :root {
+            --primary: #6e45e2;
+            --secondary: #88d3ce;
+            --dark: #1a1a2e;
+            --light: #f9f9f9;
+            --danger: #ff4d4d;
+            --success: #4CAF50;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        
+        body {
+            background-color: var(--dark);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .app-container {
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .logo {
+            font-weight: 700;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: rgba(255,255,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .scan-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .camera-preview {
+            flex: 1;
+            background-color: #333;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .ar-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .target-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 3px solid rgba(255,255,255,0.7);
+            border-radius: 50%;
+        }
+        
+        .target-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            background-color: rgba(255,255,255,0.5);
+            border-radius: 50%;
+        }
+        
+        .distance-indicator {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .distance-indicator.good {
+            background-color: var(--success);
+        }
+        
+        .distance-indicator.bad {
+            background-color: var(--danger);
+        }
+        
+        .capture-controls {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            background-color: rgba(26, 26, 46, 0.9);
+        }
+        
+        .capture-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: 4px solid white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        
+        .capture-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .capture-btn-inner {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: white;
+        }
+        
+        .instructions {
+            text-align: center;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .progress-steps {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .step {
+            width: 30px;
+            height: 6px;
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            transition: background-color 0.3s;
+        }
+        
+        .step.active {
+            background-color: var(--primary);
+        }
+        
+        .step.completed {
+            background-color: var(--success);
+        }
+        
+        /* Analysis Report Screen */
+        .report-container {
+            display: none;
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .report-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .report-date {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+        }
+        
+        .report-section {
+            background-color: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .section-title {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--secondary);
+        }
+        
+        .iris-image {
+            width: 100%;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+        }
+        
+        .heatmap {
+            position: relative;
+            margin: 1rem 0;
+        }
+        
+        .heatmap-image {
+            width: 100%;
+            border-radius: 8px;
+        }
+        
+        .heatmap-legend {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+        }
+        
+        .finding-item {
+            display: flex;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .finding-severity {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            margin-top: 0.2rem;
+        }
+        
+        .finding-severity.low {
+            background-color: #4CAF50;
+        }
+        
+        .finding-severity.medium {
+            background-color: #FFC107;
+        }
+        
+        .finding-severity.high {
+            background-color: #F44336;
+        }
+        
+        .finding-content {
+            flex: 1;
+        }
+        
+        .finding-title {
+            font-weight: 500;
+            margin-bottom: 0.2rem;
+        }
+        
+        .finding-desc {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 0.3rem;
+        }
+        
+        .finding-source {
+            font-size: 0.7rem;
+            color: var(--secondary);
+            font-style: italic;
+        }
+        
+        .recommendation-card {
+            background-color: rgba(110, 69, 226, 0.2);
+            border-left: 4px solid var(--primary);
+            padding: 0.8rem;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 0.5rem;
+        }
+        
+        .recommendation-title {
+            font-weight: 500;
+            margin-bottom: 0.3rem;
+        }
+        
+        .recommendation-desc {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .btn {
+            padding: 0.8rem 1.2rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            flex: 1;
+            text-align: center;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--dark);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            margin-top: 1rem;
+            color: rgba(255,255,255,0.8);
+        }
+        
+        .ai-processing {
+            display: flex;
+            align-items: center;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--secondary);
+        }
+        
+        .ai-processing span {
+            margin-left: 0.5rem;
+        }
+        
+        .pulse {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        /* Animation for scan completion */
+        @keyframes scanComplete {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        
+        .scan-complete {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            background-color: rgba(76, 175, 80, 0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: scanComplete 1s forwards;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .scan-complete i {
+            color: white;
+            font-size: 2rem;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Loading Screen (Initial) -->
+        <div class="loading-screen" id="loadingScreen">
+            <div class="spinner"></div>
+            <div class="logo">RAVERSUS</div>
+            <div class="loading-text">Initializing iris analysis system</div>
+        </div>
+        
+        <!-- Main App Interface -->
+        <div id="appInterface" style="display: none;">
+            <header>
+                <div class="logo">RAVERSUS</div>
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+            </header>
+            
+            <!-- Camera Scan View -->
+            <div class="scan-container" id="scanView">
+                <div class="camera-preview">
+                    <!-- In a real app, this would be the actual camera feed -->
+                    <img id="camera-feed" src="https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?w=500&auto=format" alt="Camera feed">
+                    
+                    <div class="ar-overlay">
+                        <div class="target-circle">
+                            <div class="target-center"></div>
+                        </div>
+                        <div class="distance-indicator" id="distanceIndicator">
+                            Move closer
+                        </div>
+                    </div>
+                    
+                    <div class="progress-steps">
+                        <div class="step completed" id="step1"></div>
+                        <div class="step active" id="step2"></div>
+                        <div class="step" id="step3"></div>
+                        <div class="step" id="step4"></div>
+                    </div>
+                </div>
+                
+                <div class="capture-controls">
+                    <div class="instructions" id="instructions">
+                        Align your eye within the circle. Hold steady for automatic capture.
+                    </div>
+                    
+                    <div class="capture-btn" id="captureBtn">
+                        <div class="capture-btn-inner"></div>
+                    </div>
+                    
+                    <div class="ai-processing">
+                        <i class="fas fa-brain pulse"></i>
+                        <span>AI Iris Analysis Ready</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analysis Report View -->
+            <div class="report-container" id="reportView">
+                <div class="report-header">
+                    <div class="report-title">Iris Analysis Report</div>
+                    <div class="report-date">June 23, 2025</div>
+                </div>
+                
+                <div class="report-section">
+                    <div class="section-title">Iris Images</div>
+                    <img src="https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?w=500&auto=format" class="iris-image" alt="Left iris">
+                    <img src="https://images.unsplash.com/photo-1608848461950-0fe51dfc41cb?w=500&auto=format" class="iris-image" alt="Right iris">
+                </div>
+                
+                <div class="report-section">
+                    <div class="section-title">Health Heatmap</div>
+                    <div class="heatmap">
+                        <img src="https://i.imgur.com/JqYeZvn.png" class="heatmap-image" alt="Iris heatmap">
+                        <div class="heatmap-legend">
+                            <span>Normal</span>
+                            <span>Moderate</span>
+                            <span>High</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="report-section">
+                    <div class="section-title">Key Findings</div>
+                    
+                    <div class="finding-item">
+                        <div class="finding-severity medium"></div>
+                        <div class="finding-content">
+                            <div class="finding-title">Liver Congestion</div>
+                            <div class="finding-desc">Radial furrows in the liver zone suggest reduced detoxification capacity.</div>
+                            <div class="finding-source">Source: Jensen, B. (2010). Iridology Simplified</div>
+                        </div>
+                    </div>
+                    
+                    <div class="finding-item">
+                        <div class="finding-severity low"></div>
+                        <div class="finding-content">
+                            <div class="finding-title">Adrenal Fatigue</div>
+                            <div class="finding-desc">Subtle discoloration in the adrenal zone indicates mild stress response.</div>
+                            <div class="finding-source">Source: International Journal of Iridology, 2022</div>
+                        </div>
+                    </div>
+                    
+                    <div class="finding-item">
+                        <div class="finding-severity high"></div>
+                        <div class="finding-content">
+                            <div class="finding-title">Oxidative Stress</div>
+                            <div class="finding-desc">Concentric rings suggest significant free radical damage.</div>
+                            <div class="finding-source">Source: American Journal of Natural Medicine, 2023</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="report-section">
+                    <div class="section-title">Recommended Protocols</div>
+                    
+                    <div class="recommendation-card">
+                        <div class="recommendation-title">Liver Support Protocol</div>
+                        <div class="recommendation-desc">Milk thistle (150mg 2x daily), Dandelion root tea, Cruciferous vegetables</div>
+                    </div>
+                    
+                    <div class="recommendation-card">
+                        <div class="recommendation-title">Stress Management</div>
+                        <div class="recommendation-desc">Ashwagandha (300mg at bedtime), Meditation 10min/day, Sleep before 11pm</div>
+                    </div>
+                    
+                    <div class="recommendation-card">
+                        <div class="recommendation-title">Antioxidant Boost</div>
+                        <div class="recommendation-desc">Vitamin C (1000mg), NAC (600mg), Blueberry extract</div>
+                    </div>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="btn btn-outline">Save Report</button>
+                    <button class="btn btn-primary">View Protocol Plan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate app initialization
+            setTimeout(function() {
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('appInterface').style.display = 'flex';
+                
+                // Initialize the scan view
+                setupScanView();
+            }, 2500);
+            
+            function setupScanView() {
+                const captureBtn = document.getElementById('captureBtn');
+                const distanceIndicator = document.getElementById('distanceIndicator');
+                const instructions = document.getElementById('instructions');
+                const steps = [
+                    document.getElementById('step1'),
+                    document.getElementById('step2'),
+                    document.getElementById('step3'),
+                    document.getElementById('step4')
+                ];
+                
+                let currentStep = 1;
+                
+                // Simulate distance detection
+                setInterval(function() {
+                    const distances = ['Too far', 'Move closer', 'Perfect distance', 'Too close'];
+                    const classes = ['bad', 'bad', 'good', 'bad'];
+                    const randomIndex = Math.floor(Math.random() * distances.length);
+                    
+                    distanceIndicator.textContent = distances[randomIndex];
+                    distanceIndicator.className = 'distance-indicator ' + classes[randomIndex];
+                }, 1500);
+                
+                // Capture button click handler
+                captureBtn.addEventListener('click', function() {
+                    // Show scan complete animation
+                    const scanComplete = document.createElement('div');
+                    scanComplete.className = 'scan-complete';
+                    scanComplete.innerHTML = '<i class="fas fa-check"></i>';
+                    document.querySelector('.camera-preview').appendChild(scanComplete);
+                    
+                    // Update progress steps
+                    steps[currentStep].classList.remove('active');
+                    steps[currentStep].classList.add('completed');
+                    currentStep++;
+                    
+                    if (currentStep < steps.length) {
+                        steps[currentStep].classList.add('active');
+                        
+                        // Update instructions
+                        const instructionTexts = [
+                            "Left eye captured. Now scan your right eye.",
+                            "Right eye captured. Analyzing patterns...",
+                            "Analysis complete! Generating report..."
+                        ];
+                        instructions.textContent = instructionTexts[currentStep - 2];
+                        
+                        // Simulate automatic capture for demo
+                        setTimeout(function() {
+                            captureBtn.click();
+                        }, 2000);
+                    } else {
+                        // All steps complete - show report
+                        setTimeout(function() {
+                            document.getElementById('scanView').style.display = 'none';
+                            document.getElementById('reportView').style.display = 'flex';
+                        }, 1500);
+                    }
+                    
+                    // Remove animation after it completes
+                    setTimeout(function() {
+                        scanComplete.remove();
+                    }, 1000);
+                });
+                
+                // Simulate initial auto-capture for demo
+                setTimeout(function() {
+                    captureBtn.click();
+                }, 3000);
+            }
+        });
+    </script>
+</body>
+</html>
